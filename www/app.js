@@ -13,7 +13,7 @@ const orbState = el('orbState');
 const chatInput = el('chatInput');
 
 let history = [
-  { role: 'system', content: 'তুমি SANJU, একজন সহায়ক ব্যক্তিগত AI সহকারী। বাংলায় সংক্ষিপ্ত ও স্পষ্টভাবে উত্তর দাও, প্রয়োজনে হিন্দি বা ইংরেজি শব্দ মিশিয়ে স্বাভাবিকভাবে কথা বলো।' }
+  { role: 'system', content: 'তুমি Sanju, বসের একজন বুদ্ধিমান ব্যক্তিগত AI সহকারী। বস বাংলা, হিন্দি বা ইংরেজি — যেই ভাষাতেই কথা বলুক না কেন, সেই ভাষাতেই স্বাভাবিকভাবে উত্তর দাও; মিশ্রিত ভাষায় (বাংলা-ইংরেজি বা হিন্দি-ইংরেজি) কথা বললে সেভাবেই স্বাভাবিক থাকবে, ভাষা অনুবাদ করে দেবে না যদি না বলা হয়। ছোট, স্পষ্ট, বন্ধুত্বপূর্ণ উত্তর দাও, দরকার হলে বিস্তারিত করবে। বসকে সম্মান দিয়ে কথা বলবে।' }
 ];
 
 // ---------- Greeting ----------
@@ -69,7 +69,7 @@ async function askSanju(userText) {
         'Authorization': `Bearer ${store.apiKey}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: history,
         temperature: 0.7
       })
@@ -88,11 +88,17 @@ async function askSanju(userText) {
 }
 
 // ---------- Text-to-speech ----------
+function detectSpeechLang(text) {
+  if (/[\u0980-\u09FF]/.test(text)) return 'bn-BD';   // Bengali script
+  if (/[\u0900-\u097F]/.test(text)) return 'hi-IN';   // Devanagari (Hindi)
+  return 'en-IN';                                     // Latin script fallback
+}
+
 function speak(text) {
   if (!('speechSynthesis' in window)) { setOrbState('idle'); return; }
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'bn-BD';
+  utter.lang = detectSpeechLang(text);
   utter.rate = 1;
   utter.onstart = () => setOrbState('speaking');
   utter.onend = () => setOrbState('idle');
