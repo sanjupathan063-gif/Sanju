@@ -1,0 +1,9 @@
+{
+  "appId": "com.sanju.assistant",
+  "appName": "Sanju",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
