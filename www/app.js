@@ -216,27 +216,38 @@ const Tts = Plugins.Tts || null; // ✅ ADD THIS LINE
     return voicesCache[0] || null;
   }
 
-  function speak(text) {
-    if (!window.speechSynthesis || !text) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      const pref = settings.voiceLang || "auto";
-      const voice = pickVoice(pref);
-      if (voice) {
-        utter.voice = voice;
-        utter.lang = voice.lang;
-      } else {
-        utter.lang = "bn-BD";
-      }
-      utter.rate = 1;
-      utter.pitch = 1;
-      window.speechSynthesis.speak(utter);
-    } catch (e) {
-      /* TTS ব্যর্থ হলেও চ্যাট চলতে থাকবে */
-    }
+function speak(text) {
+  if (!text) return;
+
+  if (Tts && window.Capacitor) {
+    const lang = settings.voiceLang || "bn-IN";
+    Tts.speak({ text, language: lang }).catch(() => fallbackSpeech(text));
+    return;
   }
 
+  fallbackSpeech(text);
+}
+
+function fallbackSpeech(text) {
+  if (!window.speechSynthesis || !text) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    const pref = settings.voiceLang || "bn-IN";
+    const voice = pickVoice(pref);
+    if (voice) {
+      utter.voice = voice;
+      utter.lang = voice.lang;
+    } else {
+      utter.lang = pref;
+    }
+    utter.rate = 1;
+    utter.pitch = 1;
+    window.speechSynthesis.speak(utter);
+  } catch (e) {
+    /* TTS ব্যর্থ হলেও চ্যাট চলতে থাকবে */
+  }
+}
   /* ============================================================
      স্থানীয় (লোকাল) কুইক-আনসার — সময়, তারিখ, অংক
      ============================================================ */
