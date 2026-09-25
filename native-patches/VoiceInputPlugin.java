@@ -51,8 +51,7 @@ public class VoiceInputPlugin extends Plugin {
             call.reject("RECORD_AUDIO permission not granted");
             return;
         }
-        final String language = call.getString("language", "bn-BD");
-
+final String language = call.getString("language", "bn-IN");
         getActivity().runOnUiThread(() -> {
             if (!SpeechRecognizer.isRecognitionAvailable(getContext())) {
                 call.reject("এই ডিভাইসে speech recognition সাপোর্ট নেই");

@@ -8,10 +8,10 @@
   "use strict";
 
   /* ---------- Capacitor plugin refs ---------- */
-  const Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
-  const PhoneControl = Plugins.PhoneControl || null;
-  const VoiceInput = Plugins.VoiceInput || null;
-
+const Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
+const PhoneControl = Plugins.PhoneControl || null;
+const VoiceInput = Plugins.VoiceInput || null;
+const Tts = Plugins.Tts || null; // ✅ ADD THIS LINE
   /* ---------- Storage keys ---------- */
   const LS = {
     settings: "sanju_settings",
