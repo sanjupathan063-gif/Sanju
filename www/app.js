@@ -87,6 +87,96 @@ async function askSanju(userText) {
   }
 }
 
+// ---------- Phone control (native plugin) ----------
+const Phone = window.Capacitor?.Plugins?.PhoneControl || null;
+
+async function ensurePermission(alias) {
+  if (!Phone) return false;
+  try {
+    const fn = alias === 'call' ? Phone.requestCallPermission : Phone.requestSmsPermission;
+    const res = await fn();
+    return !!res?.granted;
+  } catch {
+    return false;
+  }
+}
+
+function extractPhoneNumber(text) {
+  const match = text.match(/(\+?\d[\d\s-]{6,}\d)/);
+  return match ? match[1].replace(/[\s-]/g, '') : null;
+}
+
+async function handleCall(number) {
+  if (!Phone) { addMessage('এই বিল্ডে ফোন কন্ট্রোল যোগ করা নেই।', 'bot'); return; }
+  const granted = await ensurePermission('call');
+  if (!granted) { addMessage('কল করার পারমিশন দাওনি, তাই কল করতে পারলাম না।', 'bot'); return; }
+  addMessage(`${number} নম্বরে কল করছি...`, 'bot');
+  try {
+    await Phone.callNumber({ number });
+  } catch (e) {
+    addMessage('কল করতে সমস্যা হলো: ' + e.message, 'bot');
+  }
+}
+
+async function handleSms(number, message) {
+  if (!Phone) { addMessage('এই বিল্ডে ফোন কন্ট্রোল যোগ করা নেই।', 'bot'); return; }
+  const granted = await ensurePermission('sms');
+  if (!granted) { addMessage('SMS পাঠানোর পারমিশন দাওনি।', 'bot'); return; }
+  try {
+    await Phone.sendSms({ number, message });
+    addMessage(`${number} নম্বরে "${message}" মেসেজ পাঠিয়ে দিয়েছি।`, 'bot');
+  } catch (e) {
+    addMessage('মেসেজ পাঠাতে সমস্যা হলো: ' + e.message, 'bot');
+  }
+}
+
+async function handleOpenApp(appName) {
+  if (!Phone) { addMessage('এই বিল্ডে ফোন কন্ট্রোল যোগ করা নেই।', 'bot'); return; }
+  try {
+    const { apps } = await Phone.listApps();
+    const needle = appName.trim().toLowerCase();
+    const found = apps.find(a => a.label.toLowerCase().includes(needle));
+    if (!found) { addMessage(`"${appName}" নামে কোনো অ্যাপ খুঁজে পেলাম না।`, 'bot'); return; }
+    await Phone.openApp({ packageName: found.packageName });
+    addMessage(`${found.label} খুলে দিলাম।`, 'bot');
+  } catch (e) {
+    addMessage('অ্যাপ খুলতে সমস্যা হলো: ' + e.message, 'bot');
+  }
+}
+
+// Returns true if the text was handled as a phone-control command
+async function tryPhoneCommand(text) {
+  const number = extractPhoneNumber(text);
+
+  if (number && /sms|এসএমএস|মেসেজ\s*(পাঠাও|করো)/i.test(text)) {
+    addMessage(text, 'user');
+    let message = text
+      .replace(number, '')
+      .replace(/sms|এসএমএস|মেসেজ|পাঠাও|করো|নম্বরে/gi, '')
+      .trim();
+    if (!message) message = 'হাই';
+    await handleSms(number, message);
+    return true;
+  }
+
+  if (number && /কল\s*(করো|দাও)|call/i.test(text)) {
+    addMessage(text, 'user');
+    await handleCall(number);
+    return true;
+  }
+
+  const openMatch =
+    text.match(/(?:open|চালু করো)\s+([a-zA-Z0-9\u0980-\u09FF ]+)/i) ||
+    text.match(/([a-zA-Z0-9\u0980-\u09FF]+)\s+খোলো/i);
+  if (openMatch) {
+    addMessage(text, 'user');
+    await handleOpenApp(openMatch[1].trim());
+    return true;
+  }
+
+  return false;
+}
+
 // ---------- Text-to-speech ----------
 function detectSpeechLang(text) {
   if (/[\u0980-\u09FF]/.test(text)) return 'bn-BD';   // Bengali script
@@ -116,9 +206,10 @@ function initRecognition() {
   rec.lang = 'bn-BD';
   rec.interimResults = false;
   rec.maxAlternatives = 1;
-  rec.onresult = (e) => {
+  rec.onresult = async (e) => {
     const text = e.results[0][0].transcript;
-    askSanju(text);
+    const handled = await tryPhoneCommand(text);
+    if (!handled) askSanju(text);
   };
   rec.onerror = () => { setOrbState('idle'); toggleMic(false); };
   rec.onend = () => toggleMic(false);
@@ -169,17 +260,33 @@ function openSettings() {
 function closeSettings() { el('settingsModal').classList.remove('open'); }
 
 // ---------- Wire up events ----------
-el('sendBtn').addEventListener('click', () => {
+el('sendBtn').addEventListener('click', async () => {
   const text = chatInput.value.trim();
   if (!text) return;
   chatInput.value = '';
-  askSanju(text);
+  const handled = await tryPhoneCommand(text);
+  if (!handled) askSanju(text);
 });
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') el('sendBtn').click();
 });
 el('micBtn').addEventListener('click', () => toggleMic());
 document.querySelectorAll('[data-action="settings"]').forEach(b => b.addEventListener('click', openSettings));
+document.querySelectorAll('[data-action="phone"]').forEach(b => b.addEventListener('click', async () => {
+  if (!Phone) {
+    addMessage('এই বিল্ডে ফোন কন্ট্রোল যোগ করা নেই। GitHub থেকে সবশেষ ভার্সন দিয়ে APK বানাও।', 'bot');
+    return;
+  }
+  const callOk = await ensurePermission('call');
+  const smsOk = await ensurePermission('sms');
+  addMessage(
+    `ফোন কন্ট্রোল ${callOk && smsOk ? 'চালু হলো' : 'আংশিক চালু হলো'}। এভাবে বলো:\n` +
+    `• "01712345678 নম্বরে কল করো"\n` +
+    `• "01712345678 নম্বরে sms করো আসছি"\n` +
+    `• "youtube খোলো"`,
+    'bot'
+  );
+}));
 el('closeSettings').addEventListener('click', closeSettings);
 el('saveSettings').addEventListener('click', () => {
   store.apiKey = el('apiKeyInput').value.trim();

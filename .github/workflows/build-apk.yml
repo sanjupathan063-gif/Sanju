@@ -29,6 +29,9 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Apply native phone-control patches
+        run: python3 native-patches/apply_patches.py
+
       - name: Sync web assets into Android project
         run: npx cap sync android
 
