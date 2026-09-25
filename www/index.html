@@ -142,9 +142,49 @@
       <input type="password" id="apiKeyInput" placeholder="gsk_..." />
       <label for="nameInput">আপনার নাম</label>
       <input type="text" id="nameInput" placeholder="বস" />
+      <label for="modelInput">Groq মডেল</label>
+      <input type="text" id="modelInput" placeholder="openai/gpt-oss-120b" />
+      <label for="voiceLangSelect">কথা বলার ভাষা (TTS)</label>
+      <select id="voiceLangSelect">
+        <option value="auto">স্বয়ংক্রিয় (যা বলা হচ্ছে সেই ভাষায়)</option>
+        <option value="bn-BD">বাংলা</option>
+        <option value="hi-IN">হিন্দি</option>
+        <option value="en-IN">ইংরেজি</option>
+      </select>
       <div class="modal-actions">
         <button class="btn ghost" id="closeSettings">বাতিল</button>
         <button class="btn primary" id="saveSettings">সেভ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes modal -->
+  <div class="modal-overlay" id="notesModal">
+    <div class="modal">
+      <h2>নোট</h2>
+      <div class="list-box" id="notesList"></div>
+      <div class="add-row">
+        <input type="text" id="noteInput" placeholder="নতুন নোট লিখো..." />
+        <button class="btn primary small-btn" id="addNoteBtn">যোগ করো</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="closeNotes">বন্ধ করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memories modal -->
+  <div class="modal-overlay" id="memoriesModal">
+    <div class="modal">
+      <h2>স্মৃতি</h2>
+      <p class="hint-text">এখানে যা লিখবে, সাঞ্জু সবসময় মনে রাখবে (যেমন তোমার পছন্দ, জন্মদিন, অভ্যাস)।</p>
+      <div class="list-box" id="memoriesList"></div>
+      <div class="add-row">
+        <input type="text" id="memoryInput" placeholder="যেমন: আমার জন্মদিন ১২ মার্চ" />
+        <button class="btn primary small-btn" id="addMemoryBtn">যোগ করো</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="closeMemories">বন্ধ করো</button>
       </div>
     </div>
   </div>

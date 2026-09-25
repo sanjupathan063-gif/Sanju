@@ -264,4 +264,41 @@ body{
 @keyframes hudline{to{opacity:1;}}
 
 /* ---------- Scan HUD end ---------- */
+
+/* ---------- Notes / Memories lists ---------- */
+.modal select{
+  width:100%;background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;color:var(--text);font-family:var(--font-body);
+}
+.hint-text{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;}
+.list-box{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.list-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:9px 12px;font-size:13px;line-height:1.4;
+}
+.list-item span{flex:1;word-break:break-word;}
+.list-item .del-btn{
+  flex-shrink:0;background:transparent;border:none;color:var(--muted);
+  font-size:15px;line-height:1;cursor:pointer;padding:2px 4px;
+}
+.list-item .del-btn:active{color:var(--magenta);}
+.empty-hint{font-size:12.5px;color:var(--muted);padding:6px 2px;}
+.add-row{display:flex;gap:8px;margin-top:4px;}
+.add-row input{
+  flex:1;background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;color:var(--text);font-family:var(--font-body);
+}
+.small-btn{flex:0 0 auto;padding:10px 14px;}
+
+/* ---------- Typing indicator ---------- */
+.msg.typing{display:flex;gap:5px;align-items:center;padding:14px 16px;}
+.msg.typing span{
+  width:6px;height:6px;border-radius:50%;background:var(--cyan);
+  opacity:0.4;animation:typingDot 1s infinite ease-in-out;
+}
+.msg.typing span:nth-child(2){animation-delay:0.15s;}
+.msg.typing span:nth-child(3){animation-delay:0.3s;}
+@keyframes typingDot{0%,60%,100%{opacity:0.35;transform:translateY(0);}30%{opacity:1;transform:translateY(-3px);}}
+
 ::-webkit-scrollbar{display:none;}
