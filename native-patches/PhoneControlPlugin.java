@@ -148,4 +148,56 @@ public class PhoneControlPlugin extends Plugin {
             call.reject("Failed to open app: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void setAlarm(PluginCall call) {
+        Integer hour = call.getInt("hour");
+        Integer minute = call.getInt("minute");
+        String message = call.getString("message", "Sanju Alarm");
+        if (hour == null || minute == null) {
+            call.reject("hour and minute are required");
+            return;
+        }
+        try {
+            Intent intent = new Intent(android.provider.AlarmClock.ACTION_SET_ALARM);
+            intent.putExtra(android.provider.AlarmClock.EXTRA_HOUR, hour);
+            intent.putExtra(android.provider.AlarmClock.EXTRA_MINUTES, minute);
+            intent.putExtra(android.provider.AlarmClock.EXTRA_MESSAGE, message);
+            intent.putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, true);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to set alarm: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void toggleFlashlight(PluginCall call) {
+        Boolean on = call.getBoolean("on", true);
+        try {
+            android.hardware.camera2.CameraManager cameraManager =
+                (android.hardware.camera2.CameraManager) getContext().getSystemService(android.content.Context.CAMERA_SERVICE);
+            String[] ids = cameraManager.getCameraIdList();
+            String torchId = null;
+            for (String id : ids) {
+                android.hardware.camera2.CameraCharacteristics chars = cameraManager.getCameraCharacteristics(id);
+                Boolean hasFlash = chars.get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                if (hasFlash != null && hasFlash) {
+                    torchId = id;
+                    break;
+                }
+            }
+            if (torchId == null) {
+                call.reject("No flashlight found on this device");
+                return;
+            }
+            cameraManager.setTorchMode(torchId, on);
+            JSObject ret = new JSObject();
+            ret.put("on", on);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to toggle flashlight: " + e.getMessage());
+        }
+    }
 }

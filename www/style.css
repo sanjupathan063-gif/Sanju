@@ -225,4 +225,43 @@ body{
 .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
 .btn.primary{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05060f;}
 
+/* ---------- Scan HUD ---------- */
+.hud-overlay{
+  position:fixed;inset:0;background:rgba(2,3,10,0.92);
+  display:none;align-items:center;justify-content:center;z-index:60;padding:20px;
+}
+.hud-overlay.open{display:flex;}
+.hud{
+  width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:22px;
+}
+.hud-radar{
+  position:relative;width:220px;height:220px;border-radius:50%;
+  border:1px solid rgba(53,230,255,0.3);
+  background:radial-gradient(circle, rgba(53,230,255,0.05) 0%, transparent 70%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(53,230,255,0.15) inset;
+}
+.hud-radar-ring{position:absolute;inset:24px;border-radius:50%;border:1px solid rgba(53,230,255,0.18);}
+.hud-radar-ring.r2{inset:54px;}
+.hud-radar-sweep{
+  position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(53,230,255,0.55), transparent 35%);
+  animation:sweep 2.2s linear infinite;
+}
+@keyframes sweep{to{transform:rotate(360deg);}}
+.hud-center{
+  position:relative;z-index:2;font-family:var(--font-display);font-size:13px;
+  letter-spacing:2px;text-align:center;color:var(--cyan);
+  text-shadow:0 0 12px rgba(53,230,255,0.7);
+}
+.hud-log{
+  width:100%;min-height:140px;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:14px 16px;font-size:12.5px;line-height:1.9;color:var(--cyan);
+  font-family:'Hind Siliguri','Inter',monospace;
+}
+.hud-log .line{opacity:0;animation:hudline .4s ease forwards;}
+.hud-log .line b{color:var(--text);}
+@keyframes hudline{to{opacity:1;}}
+
+/* ---------- Scan HUD end ---------- */
 ::-webkit-scrollbar{display:none;}

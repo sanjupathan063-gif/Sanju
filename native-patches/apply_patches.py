@@ -15,7 +15,7 @@ PATCH_DIR = Path(__file__).resolve().parent
 
 def copy_java_files():
     ANDROID_JAVA_DIR.mkdir(parents=True, exist_ok=True)
-    for filename in ("PhoneControlPlugin.java", "MainActivity.java"):
+    for filename in ("PhoneControlPlugin.java", "VoiceInputPlugin.java", "MainActivity.java"):
         src = PATCH_DIR / filename
         dst = ANDROID_JAVA_DIR / filename
         shutil.copyfile(src, dst)
@@ -27,6 +27,8 @@ def patch_manifest():
     permissions = (
         '    <uses-permission android:name="android.permission.CALL_PHONE" />\n'
         '    <uses-permission android:name="android.permission.SEND_SMS" />\n'
+        '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
+        '    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />\n'
     )
     queries_block = (
         "    <queries>\n"
