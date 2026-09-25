@@ -15,7 +15,7 @@ PATCH_DIR = Path(__file__).resolve().parent
 
 def copy_java_files():
     ANDROID_JAVA_DIR.mkdir(parents=True, exist_ok=True)
-    for filename in ("PhoneControlPlugin.java", "VoiceInputPlugin.java", "TtsPlugin.java", "MainActivity.java"):
+    for filename in ("PhoneControlPlugin.java", "VoiceInputPlugin.java", "MainActivity.java"):
         src = PATCH_DIR / filename
         dst = ANDROID_JAVA_DIR / filename
         shutil.copyfile(src, dst)
