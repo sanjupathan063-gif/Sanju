@@ -284,14 +284,39 @@ function detectSpeechLang(text) {
   return 'en-IN';                                     // Latin script fallback
 }
 
-function speak(text) {
-  if (!('speechSynthesis' in window)) { setOrbState('idle'); return; }
+const Tts = window.Capacitor?.Plugins?.Tts || null;
+
+async function speak(text) {
+  const language = detectSpeechLang(text);
+
+  if (Tts) {
+    try {
+      setOrbState('speaking');
+      await Tts.speak({
+        text: text,
+        language: language
+      });
+      setOrbState('idle');
+      return;
+    } catch (e) {
+      console.warn('Native TTS failed:', e);
+    }
+  }
+
+  // Browser fallback
+  if (!('speechSynthesis' in window)) {
+    setOrbState('idle');
+    return;
+  }
+
   window.speechSynthesis.cancel();
+
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = detectSpeechLang(text);
+  utter.lang = language;
   utter.rate = 1;
   utter.onstart = () => setOrbState('speaking');
   utter.onend = () => setOrbState('idle');
+
   window.speechSynthesis.speak(utter);
 }
 
