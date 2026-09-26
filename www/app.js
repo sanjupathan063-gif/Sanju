@@ -11,6 +11,7 @@
   const Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
   const PhoneControl = Plugins.PhoneControl || null;
   const VoiceInput = Plugins.VoiceInput || null;
+  const SanjuTts = Plugins.SanjuTts || null;
 
   /* ---------- Storage keys ---------- */
   const LS = {
@@ -217,11 +218,27 @@
   }
 
   function speak(text) {
-    if (!window.speechSynthesis || !text) return;
+    if (!text) return;
+    const pref = settings.voiceLang || "auto";
+    const langCode = pref === "auto" ? "bn" : pref.split("-")[0]; // bn / hi / en
+
+    // প্রথম পছন্দ: নেটিভ Android TTS (নির্ভরযোগ্য, WebView-এর speechSynthesis-এর ওপর ভরসা করে না)
+    if (SanjuTts) {
+      SanjuTts.speak({ text, lang: langCode }).catch(() => {
+        speakWithWebView(text, pref); // নেটিভ ব্যর্থ হলে ব্রাউজার fallback
+      });
+      return;
+    }
+
+    // fallback: Capacitor প্লাগিন না থাকলে (যেমন ব্রাউজারে টেস্ট করার সময়) WebView speechSynthesis
+    speakWithWebView(text, pref);
+  }
+
+  function speakWithWebView(text, pref) {
+    if (!window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
-      const pref = settings.voiceLang || "auto";
       const voice = pickVoice(pref);
       if (voice) {
         utter.voice = voice;
@@ -233,7 +250,7 @@
       utter.pitch = 1;
       window.speechSynthesis.speak(utter);
     } catch (e) {
-      /* TTS ব্যর্থ হলেও চ্যাট চলতে থাকবে */
+      /* TTS ব্যর্থ হলেও চ্যাট স্বাভাবিকভাবে চলতে থাকবে */
     }
   }
 

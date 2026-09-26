@@ -10,6 +10,10 @@
 </head>
 <body>
 
+  <div class="hud-grid"></div>
+  <div class="hud-scanline"></div>
+  <div class="hud-vignette"></div>
+
   <div class="app">
 
     <!-- Top bar -->
@@ -43,7 +47,7 @@
 
       <!-- Orb -->
       <section class="orb-wrap">
-        <div class="orb" id="orb">
+        <div class="orb reticle" id="orb">
           <svg class="orb-ring" viewBox="0 0 220 220">
             <circle class="ring-track" cx="110" cy="110" r="96"/>
             <circle class="ring-arc arc-cyan" cx="110" cy="110" r="96"/>
@@ -136,7 +140,7 @@
 
   <!-- Settings modal -->
   <div class="modal-overlay" id="settingsModal">
-    <div class="modal">
+    <div class="modal reticle">
       <h2>সেটিংস</h2>
       <label for="apiKeyInput">Groq API Key</label>
       <input type="password" id="apiKeyInput" placeholder="gsk_..." />
@@ -160,7 +164,7 @@
 
   <!-- Notes modal -->
   <div class="modal-overlay" id="notesModal">
-    <div class="modal">
+    <div class="modal reticle">
       <h2>নোট</h2>
       <div class="list-box" id="notesList"></div>
       <div class="add-row">
@@ -175,7 +179,7 @@
 
   <!-- Memories modal -->
   <div class="modal-overlay" id="memoriesModal">
-    <div class="modal">
+    <div class="modal reticle">
       <h2>স্মৃতি</h2>
       <p class="hint-text">এখানে যা লিখবে, সাঞ্জু সবসময় মনে রাখবে (যেমন তোমার পছন্দ, জন্মদিন, অভ্যাস)।</p>
       <div class="list-box" id="memoriesList"></div>
