@@ -241,12 +241,7 @@ public class PhoneControlPlugin extends Plugin {
     @PluginMethod
     public void openBluetoothPanel(PluginCall call) {
         try {
-            Intent intent;
-            if (android.os.Build.VERSION.SDK_INT >= 29) {
-                intent = new Intent(android.provider.Settings.Panel.ACTION_BLUETOOTH);
-            } else {
-                intent = new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS);
-            }
+            Intent intent = new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(intent);
             call.resolve();
