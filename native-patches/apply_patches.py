@@ -29,6 +29,8 @@ def patch_manifest():
         '    <uses-permission android:name="android.permission.SEND_SMS" />\n'
         '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
         '    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />\n'
+        '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n'
+        '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n'
     )
     queries_block = (
         "    <queries>\n"
