@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Sanju</string>
-    <string name="title_activity_main">Sanju</string>
-    <string name="package_name">com.sanju.assistant</string>
-    <string name="custom_url_scheme">com.sanju.assistant</string>
-</resources>
