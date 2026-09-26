@@ -155,6 +155,11 @@
         <option value="hi-IN">হিন্দি</option>
         <option value="en-IN">ইংরেজি</option>
       </select>
+      <label for="azureKeyInput">Azure Speech Key (ঐচ্ছিক — আসল human ভয়েসের জন্য)</label>
+      <input type="password" id="azureKeyInput" placeholder="খালি রাখলে ডিভাইসের ভয়েস ব্যবহার হবে" />
+      <label for="azureRegionInput">Azure Region</label>
+      <input type="text" id="azureRegionInput" placeholder="যেমন: centralindia" />
+      <p class="hint-text">বিনামূল্যে Azure Speech key বানানোর জন্য অ্যাপের README ফাইল দেখো।</p>
       <div class="modal-actions">
         <button class="btn ghost" id="closeSettings">বাতিল</button>
         <button class="btn primary" id="saveSettings">সেভ করুন</button>

@@ -34,6 +34,8 @@
     userName: "বস",
     model: "openai/gpt-oss-120b",
     voiceLang: "auto",
+    azureTtsKey: "",
+    azureTtsRegion: "",
   });
   let history = loadJSON(LS.history, []); // [{role:'user'|'assistant', content:'...'}]
   let notes = loadJSON(LS.notes, []);
@@ -293,6 +295,56 @@
     return playAudioChunks(urls);
   }
 
+  /* --------- Azure নিউরাল ভয়েস (আসল, উচ্চমানের human ভয়েস) ---------
+     সেটিংসে Azure Speech key + region বসালে এটাই ব্যবহার হবে — bn-BD-NabanitaNeural
+     (বাংলাদেশি বাংলা, মেয়েলি নিউরাল ভয়েস) দিয়ে, ডিভাইসের রোবোটিক TTS-এর চেয়ে
+     সত্যিকারের মানুষের কাছাকাছি শোনাবে। key না থাকলে এই পথ চেষ্টাই হয় না। */
+  function pickAzureVoice(pref) {
+    const p = pref || settings.voiceLang || "auto";
+    if (p.indexOf("hi") === 0) return { lang: "hi-IN", voice: "hi-IN-SwaraNeural" };
+    if (p.indexOf("en") === 0) return { lang: "en-IN", voice: "en-IN-NeerjaNeural" };
+    return { lang: "bn-BD", voice: "bn-BD-NabanitaNeural" };
+  }
+
+  function escapeXml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
+  async function fetchAzureBlobUrl(text, voiceInfo) {
+    const ssml =
+      `<speak version='1.0' xml:lang='${voiceInfo.lang}'>` +
+      `<voice xml:lang='${voiceInfo.lang}' name='${voiceInfo.voice}'>${escapeXml(text)}</voice>` +
+      `</speak>`;
+    const res = await fetch(`https://${settings.azureTtsRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+      method: "POST",
+      headers: {
+        "Ocp-Apim-Subscription-Key": settings.azureTtsKey,
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": "audio-16khz-64kbitrate-mono-mp3",
+      },
+      body: ssml,
+    });
+    if (!res.ok) throw new Error("azure tts http " + res.status);
+    const blob = await res.blob();
+    if (!blob || blob.size < 200) throw new Error("azure tts empty response");
+    return URL.createObjectURL(blob);
+  }
+
+  async function speakAzure(text) {
+    if (!settings.azureTtsKey || !settings.azureTtsRegion) throw new Error("azure not configured");
+    const voiceInfo = pickAzureVoice(settings.voiceLang);
+    const chunks = chunkForSpeech(text, 280);
+    for (const chunk of chunks) {
+      const blobUrl = await fetchAzureBlobUrl(chunk, voiceInfo);
+      await playBlobUrl(blobUrl);
+    }
+  }
+
   let humanVoiceNoticeShown = false;
 
   function speak(text) {
@@ -300,22 +352,28 @@
     const clean = stripMarkdown(text);
     if (!clean) return;
 
-    if (isOnline()) {
-      speakHuman(clean).catch((err) => {
-        console.warn("SANJU: human voice failed, falling back to native TTS —", err && err.message);
-        if (!humanVoiceNoticeShown) {
-          humanVoiceNoticeShown = true;
-          addMessage(
-            "bot",
-            "(এই মুহূর্তে হাই-কোয়ালিটি ভয়েস সার্ভার থেকে আনতে পারছি না, তাই ডিভাইসের নিজস্ব ভয়েসে বলছি।)",
-            { skipHistory: true }
-          );
-        }
-        speakNative(clean);
-      });
-    } else {
+    if (!isOnline()) {
       speakNative(clean);
+      return;
     }
+
+    const azureConfigured = !!(settings.azureTtsKey && settings.azureTtsRegion);
+    const chain = azureConfigured
+      ? speakAzure(clean).catch(() => speakHuman(clean))
+      : speakHuman(clean);
+
+    chain.catch((err) => {
+      console.warn("SANJU: human voice failed, falling back to native TTS —", err && err.message);
+      if (!humanVoiceNoticeShown) {
+        humanVoiceNoticeShown = true;
+        addMessage(
+          "bot",
+          "(এই মুহূর্তে হাই-কোয়ালিটি ভয়েস সার্ভার থেকে আনতে পারছি না, তাই ডিভাইসের নিজস্ব ভয়েসে বলছি।)",
+          { skipHistory: true }
+        );
+      }
+      speakNative(clean);
+    });
   }
 
   function speakNative(text) {
@@ -1307,6 +1365,8 @@
       settings.userName = $("nameInput").value.trim() || "বস";
       settings.model = $("modelInput").value.trim() || "openai/gpt-oss-120b";
       settings.voiceLang = $("voiceLangSelect").value;
+      settings.azureTtsKey = $("azureKeyInput").value.trim();
+      settings.azureTtsRegion = $("azureRegionInput").value.trim();
       saveSettings();
       setGreeting();
       closeModal("settingsModal");
@@ -1345,6 +1405,8 @@
     $("nameInput").value = settings.userName || "";
     $("modelInput").value = settings.model || "";
     $("voiceLangSelect").value = settings.voiceLang || "auto";
+    $("azureKeyInput").value = settings.azureTtsKey || "";
+    $("azureRegionInput").value = settings.azureTtsRegion || "";
     openModal("settingsModal");
   }
 
