@@ -36,6 +36,7 @@ def patch_manifest():
         "    <queries>\n"
         "        <intent>\n"
         '            <action android:name="android.intent.action.MAIN" />\n'
+        '            <category android:name="android.intent.category.LAUNCHER" />\n'
         "        </intent>\n"
         "    </queries>\n"
     )
