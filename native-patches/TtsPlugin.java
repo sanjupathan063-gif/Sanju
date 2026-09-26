@@ -67,6 +67,25 @@ public class TtsPlugin extends Plugin implements TextToSpeech.OnInitListener {
         if (chosen == null) chosen = Locale.getDefault();
         tts.setLanguage(chosen);
 
+        // যতটা সম্ভব একটা নরম/মেয়েলি ভয়েস বেছে নেওয়ার চেষ্টা — ডিভাইসের TTS ইঞ্জিনে
+        // এমন ভয়েস ইনস্টল থাকলে। না থাকলে শুধু pitch একটু বাড়িয়ে নরম করা হয়।
+        try {
+            android.speech.tts.Voice pick = null;
+            for (android.speech.tts.Voice v : tts.getVoices()) {
+                if (v.getLocale() == null || !v.getLocale().getLanguage().equals(chosen.getLanguage())) continue;
+                String n = v.getName().toLowerCase(Locale.US);
+                if (n.contains("female") || n.contains("f#") || n.contains("#female") || n.contains("_f_") || n.endsWith("-f")) {
+                    pick = v;
+                    break;
+                }
+            }
+            if (pick != null) tts.setVoice(pick);
+        } catch (Exception ignored) {
+            /* কিছু ইঞ্জিনে getVoices() সাপোর্ট নেই — চুপচাপ ডিফল্ট ভয়েস ব্যবহার হবে */
+        }
+        tts.setPitch(1.12f);
+        tts.setSpeechRate(1.0f);
+
         final String utteranceId = "sanju_" + System.currentTimeMillis();
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override public void onStart(String utteranceId) {}

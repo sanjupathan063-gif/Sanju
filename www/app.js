@@ -423,28 +423,86 @@
       }
     }
 
-    // কল করো: "01712345678 নম্বরে কল করো"
-    let m = t.match(/(\+?\d{6,15})\s*(নম্বরে|নাম্বারে)?\s*কল\s*(করো|কর|দাও)/);
+    // কল করো: "01712345678 নম্বরে কল করো" / "01712345678 এ ফোন দাও"
+    let m = t.match(/(\+?\d{6,15})\D{0,10}(কল|ফোন)\s*(করো|কর|দাও|দে|লাগাও)/);
     if (m) {
       await doCall(m[1]);
       return true;
     }
 
     // SMS: "01712345678 নম্বরে sms করো আসছি"
-    m = t.match(/(\+?\d{6,15})\s*(নম্বরে|নাম্বারে)?\s*sms\s*(করো|কর|দাও)\s*(.+)/i);
+    m = t.match(/(\+?\d{6,15})\s*(নম্বরে|নাম্বারে)?\s*(sms|এসএমএস)\s*(করো|কর|দাও|পাঠাও)\s*(.+)/i);
     if (m) {
       const number = m[1];
-      const message = m[4].trim();
+      const message = m[5].trim();
       pendingSms = { number, message };
       addMessage("bot", `"${number}" নম্বরে লেখা হবে: "${message}" — পাঠাবো? (হ্যাঁ/না)`);
       speak(`${number} নম্বরে এই মেসেজ পাঠাবো কি না নিশ্চিত করো।`);
       return true;
     }
 
-    // অ্যাপ খোলা: "youtube খোলো"
-    m = text.match(/^(.+?)\s*খোলো$/);
+    // অ্যাপ খোলা: "youtube খোলো" / "ইউটিউব খুলে দাও" / "ক্যামেরা চালু করো"
+    m = text.match(/^(.+?)\s*(খোলো|খুলে দাও|খুলে দে|চালু করো|চালাও)$/);
     if (m && m[1].length <= 30) {
       await doOpenApp(m[1].trim());
+      return true;
+    }
+
+    // ফোন স্ক্যান
+    if (/(ফোন|মোবাইল|ডিভাইস)?\s*স্ক্যান/.test(text) && /(করো|কর|শুরু|চালাও)/.test(text)) {
+      openModal("scanModal");
+      runScan();
+      return true;
+    }
+
+    // ব্যাটারি কত % জিজ্ঞেস করলে
+    if (/ব্যাটারি/.test(text) && /(কত|কেমন|পার্সেন্ট|%)/.test(text)) {
+      let pct = "জানতে পারলাম না";
+      try {
+        if (navigator.getBattery) {
+          const b = await navigator.getBattery();
+          pct = Math.round(b.level * 100) + "%";
+        }
+      } catch (e) {}
+      const reply = `ব্যাটারি এখন ${pct} আছে।`;
+      addMessage("bot", reply);
+      speak(reply);
+      return true;
+    }
+
+    // নেটওয়ার্ক অবস্থা জিজ্ঞেস করলে
+    if (/(নেট|ইন্টারনেট|নেটওয়ার্ক)/.test(text) && /(আছে কি না|আছে কিনা|চালু আছে|কেমন|অবস্থা)/.test(text)) {
+      const reply = isOnline() ? "ইন্টারনেট কানেকশন চালু আছে।" : "ইন্টারনেট কানেকশন নেই মনে হচ্ছে।";
+      addMessage("bot", reply);
+      speak(reply);
+      return true;
+    }
+
+    // ভলিউম কন্ট্রোল
+    if (/ভলিউম/.test(text) && /(বাড়াও|বাড়া)/.test(text)) {
+      await doVolume("up");
+      return true;
+    }
+    if (/ভলিউম/.test(text) && /(কমাও|কমা)/.test(text)) {
+      await doVolume("down");
+      return true;
+    }
+    if (/(সাইলেন্ট|মিউট)/.test(text) && /(করো|কর)/.test(text)) {
+      await doVolume("mute");
+      return true;
+    }
+
+    // ওয়াইফাই / ব্লুটুথ / উজ্জ্বলতা প্যানেল
+    if (/(ওয়াইফাই|wifi)/i.test(text) && /(খোলো|অন|অফ|চালু|বন্ধ|করো)/.test(text)) {
+      await doOpenPanel("wifi");
+      return true;
+    }
+    if (/(ব্লুটুথ|bluetooth)/i.test(text) && /(খোলো|অন|অফ|চালু|বন্ধ|করো)/.test(text)) {
+      await doOpenPanel("bluetooth");
+      return true;
+    }
+    if (/(ব্রাইটনেস|উজ্জ্বলতা)/.test(text)) {
+      await doOpenPanel("brightness");
       return true;
     }
 
@@ -584,9 +642,44 @@
     }
   }
 
+  async function doVolume(direction) {
+    if (!PhoneControl) {
+      addMessage("bot", "ভলিউম কন্ট্রোল এই ডিভাইসে চালু নেই।");
+      return;
+    }
+    try {
+      await PhoneControl.adjustVolume({ direction });
+      const reply = direction === "mute" ? "সাউন্ড মিউট করে দিলাম।" : direction === "up" ? "ভলিউম বাড়িয়ে দিলাম।" : "ভলিউম কমিয়ে দিলাম।";
+      addMessage("bot", reply);
+      speak(reply);
+    } catch (e) {
+      addMessage("bot", "ভলিউম কন্ট্রোল করতে পারলাম না।");
+    }
+  }
+
+  async function doOpenPanel(kind) {
+    if (!PhoneControl) {
+      addMessage("bot", "এই ফিচার এই ডিভাইসে চালু নেই।");
+      return;
+    }
+    try {
+      if (kind === "wifi") {
+        await PhoneControl.openWifiPanel();
+        addMessage("bot", "ওয়াইফাই প্যানেল খুলে দিলাম, ওখান থেকে অন/অফ করে নাও।");
+      } else if (kind === "bluetooth") {
+        await PhoneControl.openBluetoothPanel();
+        addMessage("bot", "ব্লুটুথ প্যানেল খুলে দিলাম, ওখান থেকে অন/অফ করে নাও।");
+      } else {
+        await PhoneControl.openBrightnessSettings();
+        addMessage("bot", "ডিসপ্লে সেটিংস খুলে দিলাম, উজ্জ্বলতা ওখান থেকে বদলাতে পারবে।");
+      }
+    } catch (e) {
+      addMessage("bot", "এটা খুলতে সমস্যা হলো।");
+    }
+  }
+
   async function doFlashlight(on) {
     if (!PhoneControl) {
-      addMessage("bot", "ফ্ল্যাশলাইট কন্ট্রোল এই ডিভাইসে চালু নেই।");
       return;
     }
     try {
@@ -608,14 +701,16 @@
     const timeStr = now.toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit" });
 
     let prompt =
-      `তুমি SANJU, একজন বুদ্ধিমান, বন্ধুত্বপূর্ণ, একটু রসিক বাংলা ভাষী AI অ্যাসিস্ট্যান্ট — ` +
-      `ব্যবহারকারীর নিজস্ব Android অ্যাপ হিসেবে চলছ। ব্যবহারকারীর নাম ${settings.userName || "বস"}। ` +
-      `আজকের তারিখ ${dateStr}, এখন সময় ${timeStr}। ` +
-      `সংক্ষিপ্ত, স্বাভাবিক, সহজ ভাষায় উত্তর দাও — রোবটের মতো লম্বা-চওড়া ফরমাল উত্তর না দিয়ে ` +
-      `একজন বিশ্বস্ত, কাছের মানুষের মতো কথা বলো। প্রয়োজন না হলে ইংরেজি মেশাবে না। ` +
+      `তুমি SANJU, একজন বুদ্ধিমান, উষ্ণ, যত্নশীল আর একটু রসিক বাংলা ভাষী AI অ্যাসিস্ট্যান্ট — ` +
+      `ব্যবহারকারীর নিজস্ব Android অ্যাপ হিসেবে চলছ, আর তার সবচেয়ে কাছের, বিশ্বস্ত সঙ্গীর মতো কথা বলো। ` +
+      `ব্যবহারকারীর নাম ${settings.userName || "বস"}। আজকের তারিখ ${dateStr}, এখন সময় ${timeStr}। ` +
+      `সংক্ষিপ্ত, স্বাভাবিক, নরম সুরে কথা বলো — রোবটের মতো ফরমাল উত্তর না দিয়ে আন্তরিকতার সাথে, ` +
+      `মাঝে মাঝে হালকা আদর করে কথা বলতে পারো (যেমন নাম ধরে ডাকা, একটু খুনসুটি), তবে বেশি বাড়াবাড়ি না। ` +
+      `প্রয়োজন না হলে ইংরেজি মেশাবে না। ` +
       `তুমি সরাসরি ফোন থেকে কল দেওয়া, SMS পাঠানো, অ্যাপ খোলা, অ্যালার্ম সেট করা, ফ্ল্যাশলাইট জ্বালানো, ` +
-      `নোট রাখা আর রিমাইন্ডার সেট করতে পারো — ব্যবহারকারী সরাসরি বললেই (তোমাকে না জানিয়েই) ` +
-      `সেগুলো অ্যাপ নিজে হ্যান্ডেল করে ফেলে, তাই এই বিষয়ে প্রশ্ন এলে আত্মবিশ্বাসের সাথে বলবে যে তুমি পারো।`;
+      `ফোন স্ক্যান করা, ভলিউম/ওয়াইফাই/ব্লুটুথ/উজ্জ্বলতা কন্ট্রোল করা, নোট রাখা আর রিমাইন্ডার সেট করতে পারো — ` +
+      `ব্যবহারকারী সরাসরি বললেই (তোমাকে আলাদা করে কিছু করতে হয় না) সেগুলো অ্যাপ নিজে হ্যান্ডেল করে ফেলে, ` +
+      `তাই এই বিষয়ে প্রশ্ন এলে আত্মবিশ্বাসের সাথে বলবে যে তুমি পারো, "দুঃখিত পারি না" বলবে না।`;
 
     if (summary) {
       prompt += `\n\nআগের কথোপকথনের সারাংশ (দীর্ঘমেয়াদী প্রসঙ্গ, দরকার হলে ব্যবহার করো):\n${summary}`;

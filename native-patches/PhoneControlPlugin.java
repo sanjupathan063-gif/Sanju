@@ -200,4 +200,70 @@ public class PhoneControlPlugin extends Plugin {
             call.reject("Failed to toggle flashlight: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void adjustVolume(PluginCall call) {
+        String direction = call.getString("direction", "up"); // "up" | "down" | "mute"
+        try {
+            android.media.AudioManager am =
+                (android.media.AudioManager) getContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+            int flag = android.media.AudioManager.FLAG_SHOW_UI;
+            if ("mute".equals(direction)) {
+                am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_MUTE, flag);
+            } else if ("down".equals(direction)) {
+                am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_LOWER, flag);
+            } else {
+                am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_RAISE, flag);
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to adjust volume: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openWifiPanel(PluginCall call) {
+        try {
+            Intent intent;
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                intent = new Intent(android.provider.Settings.Panel.ACTION_WIFI);
+            } else {
+                intent = new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS);
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to open WiFi panel: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openBluetoothPanel(PluginCall call) {
+        try {
+            Intent intent;
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                intent = new Intent(android.provider.Settings.Panel.ACTION_BLUETOOTH);
+            } else {
+                intent = new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS);
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to open Bluetooth panel: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openBrightnessSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to open display settings: " + e.getMessage());
+        }
+    }
 }
