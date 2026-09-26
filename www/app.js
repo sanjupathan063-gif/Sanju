@@ -253,20 +253,31 @@
     return chunks.length ? chunks : [text.slice(0, maxLen)];
   }
 
-  function playAudioChunks(urls) {
+  /* প্রতিটা চাংক আগে fetch করে যাচাই করে (HTTP status + সাইজ) — শুধু <audio src>
+     বসিয়ে দিলে ব্যর্থতা ধরা পড়ে না, চুপচাপ কিছু না বলে থেমে যায়। fetch দিয়ে
+     নিশ্চিত হলে তবেই প্লে করা হয়, তাই fallback নির্ভরযোগ্যভাবে কাজ করবে। */
+  async function fetchTtsBlobUrl(url) {
+    const res = await fetch(url, { headers: { Referer: "https://translate.google.com/" } });
+    if (!res.ok) throw new Error("tts http " + res.status);
+    const blob = await res.blob();
+    if (!blob || blob.size < 500) throw new Error("tts empty/blocked response");
+    return URL.createObjectURL(blob);
+  }
+
+  function playBlobUrl(url) {
     return new Promise((resolve, reject) => {
-      let i = 0;
-      function playNext() {
-        if (i >= urls.length) { resolve(); return; }
-        const audio = new Audio(urls[i]);
-        const isFirst = i === 0;
-        i++;
-        audio.onended = playNext;
-        audio.onerror = isFirst ? reject : playNext; // প্রথম চাংক ব্যর্থ হলে পুরোটাই fallback করবে
-        audio.play().catch(isFirst ? reject : playNext);
-      }
-      playNext();
+      const audio = new Audio(url);
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("audio playback failed")); };
+      audio.play().catch(reject);
     });
+  }
+
+  async function playAudioChunks(urls) {
+    for (let i = 0; i < urls.length; i++) {
+      const blobUrl = await fetchTtsBlobUrl(urls[i]); // ব্যর্থ হলে throw করবে, পুরো প্রমিজ reject হবে
+      await playBlobUrl(blobUrl);
+    }
   }
 
   /* মূল, বেশি-স্বাভাবিক-শোনানো ভয়েস — Google Translate-এর TTS endpoint ব্যবহার করে,
@@ -277,10 +288,12 @@
     const langCode = pref === "auto" ? "bn" : langMap[pref.split("-")[0]] || "bn";
     const chunks = chunkForSpeech(text, 170);
     const urls = chunks.map(
-      (c) => `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(c)}&tl=${langCode}&client=tw-ob`
+      (c) => `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(c)}&tl=${langCode}&client=gtx`
     );
     return playAudioChunks(urls);
   }
+
+  let humanVoiceNoticeShown = false;
 
   function speak(text) {
     if (!text) return;
@@ -288,7 +301,18 @@
     if (!clean) return;
 
     if (isOnline()) {
-      speakHuman(clean).catch(() => speakNative(clean));
+      speakHuman(clean).catch((err) => {
+        console.warn("SANJU: human voice failed, falling back to native TTS —", err && err.message);
+        if (!humanVoiceNoticeShown) {
+          humanVoiceNoticeShown = true;
+          addMessage(
+            "bot",
+            "(এই মুহূর্তে হাই-কোয়ালিটি ভয়েস সার্ভার থেকে আনতে পারছি না, তাই ডিভাইসের নিজস্ব ভয়েসে বলছি।)",
+            { skipHistory: true }
+          );
+        }
+        speakNative(clean);
+      });
     } else {
       speakNative(clean);
     }
