@@ -1,120 +1,62 @@
-package com.sanju.assistant;
+package com.sanju.voiceassistant.plugins;
 
 import android.speech.tts.TextToSpeech;
-import android.speech.tts.UtteranceProgressListener;
-
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-
 import java.util.Locale;
 
-@CapacitorPlugin(name = "SanjuTts")
-public class TtsPlugin extends Plugin implements TextToSpeech.OnInitListener {
+@CapacitorPlugin(name = "Tts")
+public class TtsPlugin extends Plugin {
 
-    private TextToSpeech tts;
-    private boolean ready = false;
+    private TextToSpeech textToSpeech;
+    private boolean isReady = false;
 
     @Override
     public void load() {
-        tts = new TextToSpeech(getContext(), this);
-    }
-
-    @Override
-    public void onInit(int status) {
-        ready = (status == TextToSpeech.SUCCESS);
-        if (ready) {
-            tts.setSpeechRate(1.0f);
-            tts.setPitch(1.0f);
-        }
+        textToSpeech = new TextToSpeech(getContext(), status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                isReady = true;
+                textToSpeech.setLanguage(new Locale("bn", "BD"));
+            }
+        });
     }
 
     @PluginMethod
     public void speak(PluginCall call) {
         String text = call.getString("text");
         String lang = call.getString("lang", "bn");
+
         if (text == null || text.isEmpty()) {
-            call.reject("text is required");
-            return;
-        }
-        if (!ready || tts == null) {
-            call.reject("TTS not ready");
+            call.reject("Text cannot be empty");
             return;
         }
 
-        // ভাষা fallback চেইন: চাওয়া ভাষা -> হিন্দি -> ইংরেজি -> ডিভাইসের ডিফল্ট
-        Locale[] chain;
-        if (lang.startsWith("bn")) {
-            chain = new Locale[]{ new Locale("bn", "BD"), new Locale("hi", "IN"), Locale.US };
-        } else if (lang.startsWith("hi")) {
-            chain = new Locale[]{ new Locale("hi", "IN"), Locale.US };
-        } else {
-            chain = new Locale[]{ Locale.US, new Locale("en", "IN") };
+        if (!isReady || textToSpeech == null) {
+            call.reject("TTS engine is initializing");
+            return;
         }
 
-        Locale chosen = null;
-        for (Locale loc : chain) {
-            int result = tts.isLanguageAvailable(loc);
-            if (result == TextToSpeech.LANG_AVAILABLE
-                    || result == TextToSpeech.LANG_COUNTRY_AVAILABLE
-                    || result == TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE) {
-                chosen = loc;
-                break;
-            }
-        }
-        if (chosen == null) chosen = Locale.getDefault();
-        tts.setLanguage(chosen);
-
-        // যতটা সম্ভব একটা নরম/মেয়েলি ভয়েস বেছে নেওয়ার চেষ্টা — ডিভাইসের TTS ইঞ্জিনে
-        // এমন ভয়েস ইনস্টল থাকলে। না থাকলে শুধু pitch একটু বাড়িয়ে নরম করা হয়।
         try {
-            android.speech.tts.Voice pick = null;
-            for (android.speech.tts.Voice v : tts.getVoices()) {
-                if (v.getLocale() == null || !v.getLocale().getLanguage().equals(chosen.getLanguage())) continue;
-                String n = v.getName().toLowerCase(Locale.US);
-                if (n.contains("female") || n.contains("f#") || n.contains("#female") || n.contains("_f_") || n.endsWith("-f")) {
-                    pick = v;
-                    break;
-                }
+            if ("bn".equalsIgnoreCase(lang)) {
+                textToSpeech.setLanguage(new Locale("bn", "BD"));
+            } else {
+                textToSpeech.setLanguage(Locale.US);
             }
-            if (pick != null) tts.setVoice(pick);
-        } catch (Exception ignored) {
-            /* কিছু ইঞ্জিনে getVoices() সাপোর্ট নেই — চুপচাপ ডিফল্ট ভয়েস ব্যবহার হবে */
+            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "sanju_tts_id");
+            call.resolve(new JSObject().put("success", true));
+        } catch (Exception e) {
+            call.reject("TTS speak error: " + e.getMessage());
         }
-        tts.setPitch(1.12f);
-        tts.setSpeechRate(1.0f);
-
-        final String utteranceId = "sanju_" + System.currentTimeMillis();
-        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-            @Override public void onStart(String utteranceId) {}
-            @Override
-            public void onDone(String utteranceId) {
-                JSObject ret = new JSObject();
-                ret.put("done", true);
-                call.resolve(ret);
-            }
-            @Override
-            public void onError(String utteranceId) {
-                call.reject("TTS playback error");
-            }
-        });
-
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
-    }
-
-    @PluginMethod
-    public void stop(PluginCall call) {
-        if (tts != null) tts.stop();
-        call.resolve();
     }
 
     @Override
     protected void handleOnDestroy() {
-        if (tts != null) {
-            tts.stop();
-            tts.shutdown();
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
         }
     }
 }

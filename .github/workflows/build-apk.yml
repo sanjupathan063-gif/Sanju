@@ -1,15 +1,15 @@
-name: Build Sanju APK
+name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch: {}
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -20,32 +20,34 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'zulu'
+          java-version: '17'
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Add Android platform (fresh)
+      - name: Install Dependencies
         run: |
-          rm -rf android
-          npx cap add android
+          npm ci || npm install
 
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Build Web Application Assets
+        run: |
+          npm run build
 
-      - name: Apply native patches (phone control, voice input)
-        run: python3 native-patches/apply_patches.py
+      - name: Add and Sync Android Platform
+        run: |
+          npx cap add android || true
+          npx cap sync android
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
+      - name: Apply Native Android Patches
+        run: |
+          python3 native-patches/apply_patches.py
 
-      - name: Build debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK artifact
+      - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sanju-debug-apk
+          name: Sanju-Assistant-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk

@@ -2,17 +2,24 @@
   "name": "sanju-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Sanju AI assistant - Android app shell",
+  "description": "Sanju AI Voice Assistant & Secure Hub with Offline Mode, Calling & Encryption",
   "scripts": {
-    "sync": "cap sync android"
+    "dev": "vite",
+    "build": "vite build --outDir www",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android"
   },
   "dependencies": {
-    "@capacitor/android": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
-    "@capacitor/geolocation": "^6.1.0",
-    "@capacitor/share": "^6.0.3"
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "lucide-react": "^0.546.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.2"
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
   }
 }
