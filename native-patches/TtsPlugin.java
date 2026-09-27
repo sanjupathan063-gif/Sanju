@@ -10,7 +10,6 @@ import java.util.Locale;
 
 @CapacitorPlugin(name = "Tts")
 public class TtsPlugin extends Plugin {
-
     private TextToSpeech textToSpeech;
     private boolean isReady = false;
 
@@ -28,17 +27,14 @@ public class TtsPlugin extends Plugin {
     public void speak(PluginCall call) {
         String text = call.getString("text");
         String lang = call.getString("lang", "bn");
-
         if (text == null || text.isEmpty()) {
             call.reject("Text cannot be empty");
             return;
         }
-
         if (!isReady || textToSpeech == null) {
             call.reject("TTS engine is initializing");
             return;
         }
-
         try {
             if ("bn".equalsIgnoreCase(lang)) {
                 textToSpeech.setLanguage(new Locale("bn", "BD"));
@@ -49,14 +45,6 @@ public class TtsPlugin extends Plugin {
             call.resolve(new JSObject().put("success", true));
         } catch (Exception e) {
             call.reject("TTS speak error: " + e.getMessage());
-        }
-    }
-
-    @Override
-    protected void handleOnDestroy() {
-        if (textToSpeech != null) {
-            textToSpeech.stop();
-            textToSpeech.shutdown();
         }
     }
 }

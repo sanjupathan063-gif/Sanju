@@ -2,10 +2,7 @@ package com.sanju.voiceassistant.plugins;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -20,7 +17,6 @@ import com.getcapacitor.annotation.Permission;
     }
 )
 public class PhoneControlPlugin extends Plugin {
-
     @PluginMethod
     public void makeCall(PluginCall call) {
         String phoneNumber = call.getString("number");
@@ -28,7 +24,6 @@ public class PhoneControlPlugin extends Plugin {
             call.reject("Phone number is required");
             return;
         }
-
         try {
             Intent callIntent = new Intent(Intent.ACTION_DIAL);
             callIntent.setData(Uri.parse("tel:" + phoneNumber));
