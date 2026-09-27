@@ -36,6 +36,7 @@
     voiceLang: "auto",
     azureTtsKey: "",
     azureTtsRegion: "",
+    geminiTtsKey: "",
   });
   let history = loadJSON(LS.history, []); // [{role:'user'|'assistant', content:'...'}]
   let notes = loadJSON(LS.notes, []);
@@ -345,6 +346,79 @@
     }
   }
 
+  /* --------- Gemini TTS (Google AI Studio — বিনামূল্যে, কার্ড লাগে না) ---------
+     Google-এর নতুন gemini-3.1-flash-tts-preview মডেল — raw PCM অডিও ফেরত দেয়,
+     তাই ব্রাউজারে নিজে WAV হেডার বসিয়ে প্লে করতে হয়। */
+  function pcmBase64ToWavBlob(base64, sampleRate) {
+    sampleRate = sampleRate || 24000;
+    const binary = atob(base64);
+    const len = binary.length;
+    const pcmBytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) pcmBytes[i] = binary.charCodeAt(i);
+
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+    const blockAlign = (numChannels * bitsPerSample) / 8;
+    const header = new ArrayBuffer(44);
+    const view = new DataView(header);
+    function writeStr(offset, str) {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    }
+    writeStr(0, "RIFF");
+    view.setUint32(4, 36 + pcmBytes.length, true);
+    writeStr(8, "WAVE");
+    writeStr(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    writeStr(36, "data");
+    view.setUint32(40, pcmBytes.length, true);
+
+    return new Blob([header, pcmBytes], { type: "audio/wav" });
+  }
+
+  async function fetchGeminiBlobUrl(text) {
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": settings.geminiTtsKey,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
+          },
+        }),
+      }
+    );
+    if (!res.ok) throw new Error("gemini tts http " + res.status);
+    const data = await res.json();
+    const part = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
+      data.candidates[0].content.parts && data.candidates[0].content.parts[0];
+    const b64 = part && part.inlineData && part.inlineData.data;
+    if (!b64) throw new Error("gemini tts empty response");
+    const blob = pcmBase64ToWavBlob(b64, 24000);
+    return URL.createObjectURL(blob);
+  }
+
+  async function speakGemini(text) {
+    if (!settings.geminiTtsKey) throw new Error("gemini not configured");
+    const chunks = chunkForSpeech(text, 480);
+    for (const chunk of chunks) {
+      const blobUrl = await fetchGeminiBlobUrl(chunk);
+      await playBlobUrl(blobUrl);
+    }
+  }
+
   let humanVoiceNoticeShown = false;
 
   function speak(text) {
@@ -357,10 +431,17 @@
       return;
     }
 
+    const geminiConfigured = !!settings.geminiTtsKey;
     const azureConfigured = !!(settings.azureTtsKey && settings.azureTtsRegion);
-    const chain = azureConfigured
-      ? speakAzure(clean).catch(() => speakHuman(clean))
-      : speakHuman(clean);
+
+    let chain;
+    if (geminiConfigured) {
+      chain = speakGemini(clean).catch(() => (azureConfigured ? speakAzure(clean) : speakHuman(clean)));
+    } else if (azureConfigured) {
+      chain = speakAzure(clean).catch(() => speakHuman(clean));
+    } else {
+      chain = speakHuman(clean);
+    }
 
     chain.catch((err) => {
       console.warn("SANJU: human voice failed, falling back to native TTS —", err && err.message);
@@ -1365,6 +1446,7 @@
       settings.userName = $("nameInput").value.trim() || "বস";
       settings.model = $("modelInput").value.trim() || "openai/gpt-oss-120b";
       settings.voiceLang = $("voiceLangSelect").value;
+      settings.geminiTtsKey = $("geminiKeyInput").value.trim();
       settings.azureTtsKey = $("azureKeyInput").value.trim();
       settings.azureTtsRegion = $("azureRegionInput").value.trim();
       saveSettings();
@@ -1405,6 +1487,7 @@
     $("nameInput").value = settings.userName || "";
     $("modelInput").value = settings.model || "";
     $("voiceLangSelect").value = settings.voiceLang || "auto";
+    $("geminiKeyInput").value = settings.geminiTtsKey || "";
     $("azureKeyInput").value = settings.azureTtsKey || "";
     $("azureRegionInput").value = settings.azureTtsRegion || "";
     openModal("settingsModal");
