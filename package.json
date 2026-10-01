@@ -1,11 +1,16 @@
+cat << 'EOF' > package.json
 {
   "name": "sanju-main",
   "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "echo 'No build step required for plain HTML/JS'"
+    "build": "echo 'No build step required'"
   },
-  "dependencies": {
-    ...
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {}
 }
+EOF
