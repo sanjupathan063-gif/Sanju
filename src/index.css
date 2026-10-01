@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus+Jakarta+Sans', 'Hind Siliguri', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom scrollbar for cyber/modern glass theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.7);
+}
+
+@keyframes voice-ripple {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 25px rgba(99, 102, 241, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
+.animate-voice-ripple {
+  animation: voice-ripple 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* SANJU JARVIS HUD polish: accessible motion-aware cyan interface */
+:root { color-scheme: dark; }
+body { background: radial-gradient(ellipse at 50% -20%, rgba(8,145,178,.18), transparent 55%), #020617; }
+.jarvis-glow { box-shadow: 0 0 24px rgba(34,211,238,.12), inset 0 0 18px rgba(34,211,238,.035); }
+.jarvis-ring { border: 1px solid rgba(34,211,238,.35); box-shadow: 0 0 18px rgba(34,211,238,.15), inset 0 0 18px rgba(34,211,238,.08); }
+@keyframes sanju-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,211,238,.22); } 50% { box-shadow: 0 0 0 12px rgba(34,211,238,0); } }
+.sanju-listening { animation: sanju-pulse 1.8s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
