@@ -1,18 +1,11 @@
 {
-  "name": "sanju-app",
+  "name": "sanju-main",
   "version": "1.0.0",
-  "private": true,
-  "description": "Sanju AI assistant - Android app shell",
   "scripts": {
-    "sync": "cap sync android"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo 'No build step required for plain HTML/JS'"
   },
   "dependencies": {
-    "@capacitor/android": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
-    "@capacitor/geolocation": "^6.1.0",
-    "@capacitor/share": "^6.0.3"
-  },
-  "devDependencies": {
-    "@capacitor/cli": "^6.1.2"
+    ...
   }
 }
